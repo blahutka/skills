@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rails Servus"
+  short_description: "Use Servus services, controllers, and domain events"
+  default_prompt: "Use $rails-servus to implement this feature following the existing project conventions."

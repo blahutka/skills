@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rails RubyLLM"
+  short_description: "Build optional domain-owned RubyLLM agents"
+  default_prompt: "Use $rails-rubyllm to implement this feature following the existing project conventions."
