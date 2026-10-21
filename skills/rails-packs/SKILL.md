@@ -13,7 +13,7 @@ Organize code by business ownership while preserving Rails conventions. These ar
 2. Choose the meaningful domain that owns the behavior. Extend an existing pack before creating a new one for a few unrelated files.
 3. Keep domain implementation private. Put deliberate entry points and contracts in the configured public path; declare dependencies in the package that references those constants. A dependency does not override privacy.
 4. Follow the application's rich model/domain object conventions. Keep HTTP and job entry points thin. Use services where the application already has a meaningful action/service pattern.
-5. For layout and namespace decisions, read [pack structure](references/pack-structure.md). Check installed tooling before assuming a configuration key is supported.
+5. For layout, namespace decisions, and worked Ruby examples (models, controllers, actions, public contracts, routes, and specs), read [pack structure](references/pack-structure.md). Check installed tooling before assuming a configuration key is supported.
 6. Verify Rails autoloading and relevant behavior tests. Run configured dependency/privacy checks when present. Report missing tooling honestly; package.yml alone does not prove boundaries are enforced.
 
 ## Integration choices
