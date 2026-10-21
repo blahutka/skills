@@ -8,37 +8,103 @@ Reusable Rails development guidance for coding agents. Each folder under `skills
 | [rails-servus](skills/rails-servus/SKILL.md) | Servus actions, controller responses, and events between domains |
 | [rails-rubyllm](skills/rails-rubyllm/SKILL.md) | Optional domain-owned AI agents and background execution |
 
-## Install into one project
+## Install in Codex
 
-Tell your coding agent:
+Open your application project in Codex and send:
 
-> Install the rails-packs and rails-servus skills from https://github.com/blahutka/skills into this project's .agents/skills/. Copy the complete selected skill folders, including references and optional agents metadata. Record the source commit. Do not install them globally or change application dependencies.
+> Use the skill installer to install rails-packs and rails-servus from https://github.com/blahutka/skills into this project's .agents/skills/. Copy the complete selected folders, including references and agents metadata. Record the source commit. Do not install globally, overwrite existing skills, or change application dependencies.
 
-For AI features, also request `rails-rubyllm`. A direct skill folder URL works as a source, for example https://github.com/blahutka/skills/tree/main/skills/rails-rubyllm. In Codex, a skill installer can download GitHub skill folders; explicitly request the project-local destination because its default can be user-wide.
+For AI features, include `rails-rubyllm` in the request. Skills should be available on the next turn; if they do not appear, reopen the project/session.
 
-Installation means copying instructions, not adding gems, credentials, migrations, or application agents. Review conflicts before replacing an existing local skill. Skills should be available on the next turn; discovery and invocation syntax depend on the coding agent.
-
-Expected destination:
+Invoke a skill explicitly:
 
 ```text
-.agents/skills/
-  rails-packs/SKILL.md
-  rails-packs/references/pack-structure.md
-  rails-servus/SKILL.md
-  rails-servus/references/events.md
-  rails-rubyllm/SKILL.md
-  rails-rubyllm/references/invoice-review-example.md
+$rails-packs Add a billing pack following this project's conventions.
+$rails-servus Connect the domains through Servus events.
+$rails-rubyllm Add an optional invoice review agent to billing.
 ```
 
-Copy all files in each selected directory, not just those shown above. Commit the installed folders with the application so collaborators use the same version.
+Codex discovers project skills in `.agents/skills/`. See [official Codex skill documentation](https://developers.openai.com/codex/skills/).
+
+## Install in Claude Code
+
+Start Claude Code in your application project and send:
+
+> Install rails-packs and rails-servus from https://github.com/blahutka/skills into this project's .claude/skills/. Copy the complete selected folders, including references. Record the source commit. Do not install globally, overwrite existing skills, or change application dependencies.
+
+For AI features, include `rails-rubyllm`. Invoke a skill explicitly:
+
+```text
+/rails-packs Add a billing pack following this project's conventions.
+/rails-servus Connect the domains through Servus events.
+/rails-rubyllm Add an optional invoice review agent to billing.
+```
+
+Claude Code discovers project skills in `.claude/skills/`. If a new skill is not listed, restart the session from the project root. The optional `agents/openai.yaml` file provides Codex metadata; Claude Code does not need it. See [official Claude Code skill documentation](https://code.claude.com/docs/en/skills).
+
+This repository provides standalone skills, not a Claude plugin marketplace. Use folder installation rather than `/plugin marketplace add` or `/plugin install`.
+
+## Manual installation (macOS/Linux)
+
+From your application project root, choose the destination:
+
+```sh
+# Codex:
+SKILLS_DEST=".agents/skills"
+# Claude Code: use this instead:
+# SKILLS_DEST=".claude/skills"
+```
+
+Then copy the selected skills using this Bash snippet. It refuses to replace an existing skill. Requires Git and Python 3.
+
+```bash
+(
+  set -eu
+  skills_source=$(mktemp -d)
+  trap 'rm -rf "$skills_source"' EXIT
+  git clone https://github.com/blahutka/skills.git "$skills_source/repository"
+
+  # Optional: select an existing tag or commit before copying.
+  # git -C "$skills_source/repository" checkout <tag-or-commit>
+
+  python3 - "$skills_source/repository" "$SKILLS_DEST" <<'INSTALL'
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+source, destination = map(Path, sys.argv[1:])
+selected = ["rails-packs", "rails-servus"]
+# Include "rails-rubyllm" above if the project needs AI support.
+for name in selected:
+    target = destination / name
+    if target.exists() or target.is_symlink():
+        raise SystemExit(f"Skill already exists; review before updating: {target}")
+for name in selected:
+    shutil.copytree(source / "skills" / name, destination / name)
+commit = subprocess.check_output(
+    ["git", "-C", str(source), "rev-parse", "HEAD"], text=True
+).strip()
+print(f"Installed {', '.join(selected)} into {destination}")
+print(f"Source: https://github.com/blahutka/skills at {commit}")
+INSTALL
+)
+```
+
+Record the printed source commit in your project documentation. Run separately with each destination if the team uses both tools. Commit the installed skill directories so collaborators receive the same versions.
 
 ## Use and update
 
-In Codex, invoke explicitly with `$rails-packs`, `$rails-servus`, or `$rails-rubyllm`; applicable skills can also be selected automatically. These are coding-agent instructions, not runtime agents or Ruby gems.
+| Tool | Project-local directory | Explicit invocation |
+| --- | --- | --- |
+| Codex | `.agents/skills/<name>/` | `$rails-packs` |
+| Claude Code | `.claude/skills/<name>/` | `/rails-packs` |
 
-Keep project-specific versions, enabled features, commands, and required architecture in the project's AGENTS.md. Skills provide reusable workflows and examples; project instructions and explicit user choices take precedence. Do not paste the entire library into AGENTS.md.
+Both tools can also select relevant skills automatically. Install complete folders, including `references/`; copying only SKILL.md omits the examples. A direct [skill folder URL](https://github.com/blahutka/skills/tree/main/skills/rails-rubyllm) can identify an individual skill.
 
-For reproducible installations, select a commit SHA or an existing release tag instead of a moving main branch. Keep the source URL and commit in your project documentation, and review diffs before updating. These copied skills do not update automatically. No release tag is required to install from a commit.
+Installation copies coding guidance. It does not install gems, configure providers, or create application agents. Keep project-specific versions, enabled features, commands, and mandatory architecture in AGENTS.md for Codex and CLAUDE.md for Claude Code. When using both, keep shared policies consistent; do not assume both tools automatically read the same instruction file.
+
+For reproducible installations, select a commit SHA or an existing release tag instead of moving `main`. Review diffs before updating existing copies; they do not update automatically. No release tag is required to install from a commit.
 
 ## Add another skill
 
