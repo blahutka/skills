@@ -68,4 +68,3 @@ For every example, state:
 - any unresolved decision that could change the API.
 
 When a project is available, inspect nearby code and follow its naming and folder conventions. Otherwise keep examples small and clearly illustrative.
-

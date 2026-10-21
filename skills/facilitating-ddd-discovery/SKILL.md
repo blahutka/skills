@@ -87,4 +87,3 @@ After the stakeholder reveals multiple service profiles, offer interpretations: 
 - Using one happy-path example without boundary cases.
 - Calling discovery complete without showing unresolved decisions.
 - Presenting framework structure as though the stakeholder requested it.
-
