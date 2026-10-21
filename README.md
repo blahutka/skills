@@ -4,6 +4,7 @@ Reusable Rails development guidance for coding agents. Each folder under `skills
 
 | Skill | Use it for |
 | --- | --- |
+| [facilitating-ddd-discovery](skills/facilitating-ddd-discovery/SKILL.md) | Stakeholder discovery, domain vocabulary, boundary rules, and project-aware APIs |
 | [rails-packs](skills/rails-packs/SKILL.md) | Domain packs, Packwerk boundaries, namespaces, and public interfaces |
 | [rails-servus](skills/rails-servus/SKILL.md) | Servus actions, controller responses, and events between domains |
 | [rails-rubyllm](skills/rails-rubyllm/SKILL.md) | Optional domain-owned AI agents and background execution |

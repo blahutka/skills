@@ -1,0 +1,4 @@
+interface:
+  display_name: "DDD Discovery Facilitator"
+  short_description: "Discover stakeholder language before code"
+  default_prompt: "Use $facilitating-ddd-discovery to turn this stakeholder request into a confirmed domain model and project-aware API."
