@@ -5,7 +5,7 @@ Reusable Rails development guidance for coding agents. Each folder under `skills
 | Skill | Use it for |
 | --- | --- |
 | [facilitating-ddd-discovery](skills/facilitating-ddd-discovery/SKILL.md) | Stakeholder discovery, domain vocabulary, boundary rules, and project-aware APIs |
-| [rails-packs](skills/rails-packs/SKILL.md) | Domain packs, Packwerk boundaries, namespaces, and public interfaces |
+| [rails-packs](skills/rails-packs/SKILL.md) | Domain packs, Packwerk boundaries, automatic namespaces, and public interfaces |
 | [rails-servus](skills/rails-servus/SKILL.md) | Servus actions, controller responses, and events between domains |
 | [rails-rubyllm](skills/rails-rubyllm/SKILL.md) | Optional domain-owned AI agents and background execution |
 
@@ -103,7 +103,7 @@ Record the printed source commit in your project documentation. Run separately w
 
 Both tools can also select relevant skills automatically. Install complete folders, including `references/`; copying only SKILL.md omits the examples. A direct [skill folder URL](https://github.com/blahutka/skills/tree/main/skills/rails-rubyllm) can identify an individual skill.
 
-Installation copies coding guidance. It does not install gems, configure providers, or create application agents. Keep project-specific versions, enabled features, commands, and mandatory architecture in AGENTS.md for Codex and CLAUDE.md for Claude Code. When using both, keep shared policies consistent; do not assume both tools automatically read the same instruction file.
+Installation copies coding guidance. It does not install gems, configure providers, or create application agents. When implementing new namespaced packs, `rails-packs` defaults to the `automatic_namespaces` gem and flattened Ruby paths. Existing layouts are preserved unless migration is requested or project instructions select another convention. Keep project-specific versions, enabled features, commands, and mandatory architecture in AGENTS.md for Codex and CLAUDE.md for Claude Code. When using both, keep shared policies consistent; do not assume both tools automatically read the same instruction file.
 
 For reproducible installations, select a commit SHA or an existing release tag instead of moving `main`. Review diffs before updating existing copies; they do not update automatically. No release tag is required to install from a commit.
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Rails Packs"
-  short_description: "Build Rails domain packs with clear boundaries"
+  short_description: "Build Rails packs with automatic domain namespaces"
   default_prompt: "Use $rails-packs to implement this feature following the existing project conventions."

@@ -4,7 +4,9 @@ A typical domain pack has package.yml plus app/models, app/controllers, app/view
 
 A common policy is enforce_dependencies: true, enforce_privacy: true, with public_path: app/public/. Confirm installed tools support these keys and actually run privacy checks. Root package settings and shared packs are project decisions; do not silently disable enforcement to make a reference pass.
 
-Without automatic_namespaces, use normal Zeitwerk paths, for example app/models/billing/invoice.rb for Billing::Invoice. With automatic_namespaces configured for a pack, app/models/invoice.rb can define Billing::Invoice. Inspect namespace exclusions and existing code before applying this to controllers or other roots. Do not duplicate a namespace directory or assume a new autoload root has inherited the desired mapping.
+Default new namespaced packs to automatic_namespaces. Add `gem "automatic_namespaces"` alongside packs-rails when implementing the setup, resolve a compatible version through Bundler, and opt each pack in through its package metadata. A file at `packs/billing/app/models/invoice.rb` still defines `Billing::Invoice`; the gem changes autoload-root mappings, not Ruby's lexical constant lookup. Keep explicit Ruby module/class declarations. Do not add an extra `billing/` folder beneath automatically namespaced Ruby roots.
+
+For an existing application, inspect its conventions first. Preserve conventional Zeitwerk paths unless migration is requested. If a project explicitly opts out of automatic_namespaces, use `app/models/billing/invoice.rb` for `Billing::Invoice`. Do not mix both layouts within a mapped root. Inspect installed namespace exclusions before applying the default to custom roots.
 
 Routes are not proven to load merely because a pack has config/routes.rb. Follow existing explicit route loading and verify the resulting routes. Likewise check factory/spec discovery and template lookup rather than assuming they follow model autoloading.
 
@@ -14,19 +16,20 @@ Run bundle exec rails zeitwerk:check and focused specs when the application supp
 
 ## Worked example: billing pack
 
-This example uses ordinary Zeitwerk namespace directories, without automatic namespace rewriting. It assumes Rails, packs-rails, PostgreSQL, RSpec, and FactoryBot are already configured. Adapt dependencies and test setup to the application; installing the skill does not install these gems.
+This example uses the default automatic_namespaces layout. It assumes Rails, packs-rails, automatic_namespaces, PostgreSQL, RSpec, and FactoryBot are configured. Add and configure the namespace gem as part of requested pack setup if missing. Adapt dependency versions and test setup to the application; installing the skill itself does not install gems.
 
 ```text
 packs/billing/
   package.yml
   app/
-    models/billing.rb
-    models/billing/invoice.rb
-    controllers/billing/invoices_controller.rb
-    services/billing/create_invoice.rb
-    public/billing/invoice_summary.rb
+    models/invoice.rb
+    controllers/invoices_controller.rb
+    services/create_invoice.rb
+    public/invoice_summary.rb
     views/billing/invoices/index.html.erb
-  config/routes.rb
+  config/
+    initializers/namespace.rb
+    routes.rb
   spec/
     factories/billing_invoices.rb
     models/billing/invoice_spec.rb
@@ -44,6 +47,8 @@ enforce_privacy: true
 public_path: app/public/
 dependencies:
   - '.'
+metadata:
+  automatic_pack_namespace: true
 ```
 
 Declare the root dependency because these examples inherit ApplicationRecord and ApplicationController. When another package references the public Billing::InvoiceSummary contract, that caller declares `packs/billing` in its own dependencies. This does not permit private model access.
@@ -51,8 +56,8 @@ Declare the root dependency because these examples inherit ApplicationRecord and
 ### Model and migration
 
 ```ruby
-# packs/billing/app/models/billing.rb
-# For this conventional layout; reuse an existing Billing namespace if present.
+# packs/billing/config/initializers/namespace.rb
+# Reuse an existing table-prefix definition instead of defining it twice.
 module Billing
   def self.table_name_prefix
     "billing_"
@@ -61,7 +66,7 @@ end
 ```
 
 ```ruby
-# packs/billing/app/models/billing/invoice.rb
+# packs/billing/app/models/invoice.rb
 class Billing::Invoice < ApplicationRecord
   validates :number, presence: true, uniqueness: true
   validates :total_cents, numericality: { only_integer: true, greater_than: 0 }
@@ -85,12 +90,12 @@ class CreateBillingInvoices < ActiveRecord::Migration[8.1]
 end
 ```
 
-The Billing namespace above supplies the billing_ table prefix. Reuse existing namespace configuration instead of redefining it; with automatic_namespaces, verify its namespace setup or configure the model table name explicitly. For multi-tenant billing, scope invoice lookup and uniqueness to the account and use a matching composite unique index.
+The gem creates the root Billing module. Do not leave a `models/billing.rb` namespace-definition file under an automatically namespaced root: that path would imply `Billing::Billing`. Preserve namespace behavior such as `billing_` table prefixes in a pack initializer, as above, when pack initializer discovery is configured. Otherwise use a verified application initializer or explicit model table names. Verify table names rather than assuming creating a module supplies a database prefix. For multi-tenant billing, scope invoice lookup and uniqueness to the account and use a matching composite unique index.
 
 ### Controller, routes, and view
 
 ```ruby
-# packs/billing/app/controllers/billing/invoices_controller.rb
+# packs/billing/app/controllers/invoices_controller.rb
 class Billing::InvoicesController < ApplicationController
   def index
     @invoices = Billing::Invoice.order(created_at: :desc)
@@ -133,7 +138,7 @@ The controller intentionally omits project-specific authentication, account scop
 For projects with a plain action-object convention:
 
 ```ruby
-# packs/billing/app/services/billing/create_invoice.rb
+# packs/billing/app/services/create_invoice.rb
 class Billing::CreateInvoice
   def self.call(number:, total_cents:)
     Billing::Invoice.create!(number: number, total_cents: total_cents)
@@ -146,7 +151,7 @@ Keep this private to billing. For projects using Servus, follow their namespaced
 A synchronous read can expose a narrow contract when the project's communication policy permits it:
 
 ```ruby
-# packs/billing/app/public/billing/invoice_summary.rb
+# packs/billing/app/public/invoice_summary.rb
 class Billing::InvoiceSummary
   def self.fetch(id:)
     invoice = Billing::Invoice.find(id)
@@ -212,31 +217,28 @@ end
 
 Ensure rails_helper includes FactoryBot syntax and discovers pack factory files. If the installed packs-rails version provides an RSpec helper, use its documented setup; otherwise add an explicit factory path and appropriate spec loading. Adapt request specs to the actual authentication policy.
 
-### When automatic_namespaces is enabled
+### Namespace exclusions and migration
 
-Only with the gem installed and its configuration verified, a models directory can omit the redundant domain folder:
+The gem excludes views, JavaScript, and helpers by default. Keep namespaced view paths such as `app/views/billing/invoices/index.html.erb` and route declarations such as `namespace :billing`. Inspect the installed version for the full excluded-root list; do not flatten templates because model paths changed.
 
-```ruby
-# packs/billing/app/models/invoice.rb
-class Billing::Invoice < ApplicationRecord
-  validates :number, presence: true
-end
-```
-
-A commonly used pack metadata configuration is:
+Automatically map controllers, models, jobs, public contracts, services, agents, and tools when those roots exist. Add exclusions only for a concrete convention that needs top-level constants. For example, an existing Pundit policy layout may require:
 
 ```yaml
 metadata:
   automatic_pack_namespace: true
   automatic_pack_namespace_exclusions:
-    - controllers
-    - views
-    - assets
-    - helpers
-    - javascript
+    - app/policies
 ```
 
-Here controllers are explicitly excluded so the conventional controllers/billing/... paths above remain appropriate. Inspect the installed version's behavior for public, services, and any new roots as well; adjust their paths consistently rather than blindly copying the conventional tree. Verify with Zeitwerk and route/request checks before adopting this variant.
+Do not exclude controllers by default. For nonstandard acronyms or nested domain namespaces, use the installed gem's documented namespace override support and verify the resulting constants. Do not guess configuration keys.
+
+When migrating an existing pack:
+
+1. Inspect namespace-definition files, table-prefix methods, custom autoload roots, and exclusions.
+2. Enable pack metadata and move Ruby files out of redundant domain directories, including `app/public/<domain>/`. Preserve nested action folders and explicit Ruby modules/classes so lexical lookups still work.
+3. Move root namespace behavior to a discovered initializer, or set model table names explicitly; remove obsolete empty namespace-definition files. Preserve database names and associations without creating migrations for a path-only change.
+4. Keep views, routes, assets, helpers, and JavaScript under their configured conventions. Update literal source paths in tooling, fixtures, documentation, and stored source-link metadata when relevant.
+5. Verify eager loading, request/view rendering, public contract resolution, table names, pack boundaries, and development reloading. Restart long-running Rails and language-server processes after changing autoload roots.
 
 ### Focused verification
 
@@ -246,4 +248,4 @@ bundle exec rails routes -g billing
 bundle exec rspec packs/billing/
 ```
 
-Also run the application's configured dependency/privacy checks. The examples are reference snippets, not a complete generated Rails application.
+Verify `Billing::Invoice.table_name` remains `billing_invoices` and that reloading preserves namespace behavior. Also run the application's configured dependency/privacy checks. The examples are reference snippets, not a complete generated Rails application.
